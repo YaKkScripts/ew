@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roblox Place Store</title>
+    <style>
+        :root {
+            --primary-color: #00a2ff;
+            --secondary-color: #007acc;
+            --dark-color: #1a1a1a;
+            --light-color: #f5f5f5;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background-color: var(--dark-color);
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 4px solid var(--primary-color);
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 2.5rem;
+        }
+        
+        .create-btn {
+            display: inline-block;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 25px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            margin: 20px 0;
+        }
+        
+        .create-btn:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+        
+        .product-card {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border: 1px solid #e1e1e1;
+        }
+        
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .product-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-bottom: 1px solid #e1e1e1;
+        }
+        
+        .product-info {
+            padding: 20px;
+        }
+        
+        .product-name {
+            font-size: 1.3rem;
+            margin: 0 0 15px;
+            color: var(--dark-color);
+            font-weight: 600;
+        }
+        
+        .download-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        
+        .download-btn:hover {
+            background-color: var(--secondary-color);
+        }
+        
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            grid-column: 1 / -1;
+            color: #666;
+        }
+        
+        .empty-state img {
+            max-width: 150px;
+            margin-bottom: 20px;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Roblox Place Store</h1>
+        </div>
+    </header>
+    
+    <div class="container">
+        <a href="/create" class="create-btn">Create New Place</a>
+        
+        <div id="alert-message"></div>
+        
+        <div class="products-grid" id="products-container">
+            <div class="empty-state">
+                <img src="https://cdn-icons-png.flaticon.com/512/4254/4254068.png" alt="No products">
+                <h2>No Roblox Places Available</h2>
+                <p>Create your first Roblox Place to get started</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check for success message
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('created')) {
+                showAlert('Roblox Place created successfully!', 'success');
+                // Clean URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+            
+            // Load products
+            loadProducts();
+            
+            // Alert function
+            function showAlert(message, type) {
+                const alertDiv = document.getElementById('alert-message');
+                alertDiv.innerHTML = `
+                    <div class="alert alert-${type}">
+                        ${message}
+                    </div>
+                `;
+                setTimeout(() => {
+                    alertDiv.innerHTML = '';
+                }, 5000);
+            }
+            
+            // Load products function
+            async function loadProducts() {
+                try {
+                    const response = await fetch('/get_products');
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    
+                    const products = await response.json();
+                    renderProducts(products);
+                } catch (error) {
+                    console.error('Error loading products:', error);
+                    showAlert('Error loading Roblox Places. Please try again.', 'error');
+                }
+            }
+            
+            // Render products function
+            function renderProducts(products) {
+                const container = document.getElementById('products-container');
+                
+                if (products.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <img src="https://cdn-icons-png.flaticon.com/512/4254/4254068.png" alt="No products">
+                            <h2>No Roblox Places Available</h2>
+                            <p>Create your first Roblox Place to get started</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = products.map(product => `
+                    <div class="product-card">
+                        <img src="${product.image}" class="product-image" alt="${product.name}">
+                        <div class="product-info">
+                            <h3 class="product-name">${product.name}</h3>
+                            <a href="/download/${product.file_id}" 
+                               class="download-btn" 
+                               download="${product.original_file_name}"
+                               type="application/octet-stream">
+                               Download .rbxl File
+                            </a>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        });
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roblox Place Store</title>
+    <style>
+        :root {
+            --primary-color: #00a2ff;
+            --secondary-color: #007acc;
+            --dark-color: #1a1a1a;
+            --light-color: #f5f5f5;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --roblox-orange: #f85628;
+            --roblox-dark: #2c2f33;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+            color: #333;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        /* Bubble Animation */
+        .bubbles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+        
+        .bubble {
+            position: absolute;
+            bottom: -100px;
+            background: rgba(0, 162, 255, 0.1);
+            border-radius: 50%;
+            animation: rise 15s infinite ease-in;
+        }
+        
+        .bubble:nth-child(1) {
+            width: 40px;
+            height: 40px;
+            left: 10%;
+            animation-duration: 8s;
+        }
+        
+        .bubble:nth-child(2) {
+            width: 20px;
+            height: 20px;
+            left: 20%;
+            animation-duration: 5s;
+            animation-delay: 1s;
+        }
+        
+        .bubble:nth-child(3) {
+            width: 50px;
+            height: 50px;
+            left: 35%;
+            animation-duration: 7s;
+            animation-delay: 2s;
+        }
+        
+        .bubble:nth-child(4) {
+            width: 80px;
+            height: 80px;
+            left: 50%;
+            animation-duration: 11s;
+            animation-delay: 0s;
+        }
+        
+        .bubble:nth-child(5) {
+            width: 35px;
+            height: 35px;
+            left: 55%;
+            animation-duration: 6s;
+            animation-delay: 1s;
+        }
+        
+        .bubble:nth-child(6) {
+            width: 45px;
+            height: 45px;
+            left: 65%;
+            animation-duration: 8s;
+            animation-delay: 3s;
+        }
+        
+        .bubble:nth-child(7) {
+            width: 25px;
+            height: 25px;
+            left: 75%;
+            animation-duration: 7s;
+            animation-delay: 2s;
+        }
+        
+        .bubble:nth-child(8) {
+            width: 80px;
+            height: 80px;
+            left: 80%;
+            animation-duration: 6s;
+            animation-delay: 1s;
+        }
+        
+        @keyframes rise {
+            0% {
+                bottom: -100px;
+                transform: translateX(0);
+            }
+            50% {
+                transform: translateX(100px);
+            }
+            100% {
+                bottom: 1080px;
+                transform: translateX(-200px);
+            }
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background-color: var(--roblox-dark);
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 4px solid var(--roblox-orange);
+            position: relative;
+            z-index: 1;
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .create-btn {
+            display: inline-block;
+            background-color: var(--roblox-orange);
+            color: white;
+            padding: 12px 25px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            margin: 20px 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .create-btn:hover {
+            background-color: #e04b22;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+        
+        .product-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border: none;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .product-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+        }
+        
+        .product-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-bottom: 1px solid #e1e1e1;
+        }
+        
+        .product-info {
+            padding: 20px;
+            background: white;
+        }
+        
+        .product-name {
+            font-size: 1.3rem;
+            margin: 0 0 15px;
+            color: var(--dark-color);
+            font-weight: 600;
+        }
+        
+        .download-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background-color: var(--roblox-orange);
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .download-btn:hover {
+            background-color: #e04b22;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            grid-column: 1 / -1;
+            color: #666;
+            position: relative;
+            z-index: 1;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .empty-state img {
+            max-width: 150px;
+            margin-bottom: 20px;
+            opacity: 0.6;
+        }
+        
+        /* Roblox-like floating animation */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        .floating {
+            animation: float 3s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <!-- Bubble Background -->
+    <div class="bubbles">
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+    </div>
+    
+    <header>
+        <div class="container">
+            <h1>Roblox Place Store</h1>
+        </div>
+    </header>
+    
+    <div class="container">
+        <a href="/create" class="create-btn">Create New Place</a>
+        
+        <div id="alert-message"></div>
+        
+        <div class="products-grid" id="products-container">
+            <div class="empty-state floating">
+                <img src="https://cdn-icons-png.flaticon.com/512/4254/4254068.png" alt="No products">
+                <h2>No Roblox Places Available</h2>
+                <p>Create your first Roblox Place to get started</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check for success message
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('created')) {
+                showAlert('Roblox Place created successfully!', 'success');
+                // Clean URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+            
+            // Load products
+            loadProducts();
+            
+            // Alert function
+            function showAlert(message, type) {
+                const alertDiv = document.getElementById('alert-message');
+                alertDiv.innerHTML = `
+                    <div class="alert alert-${type}">
+                        ${message}
+                    </div>
+                `;
+                setTimeout(() => {
+                    alertDiv.innerHTML = '';
+                }, 5000);
+            }
+            
+            // Load products function
+            async function loadProducts() {
+                try {
+                    const response = await fetch('/get_products');
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    
+                    const products = await response.json();
+                    renderProducts(products);
+                } catch (error) {
+                    console.error('Error loading products:', error);
+                    showAlert('Error loading Roblox Places. Please try again.', 'error');
+                }
+            }
+            
+            // Render products function
+            function renderProducts(products) {
+                const container = document.getElementById('products-container');
+                
+                if (products.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state floating">
+                            <img src="https://cdn-icons-png.flaticon.com/512/4254/4254068.png" alt="No products">
+                            <h2>No Roblox Places Available</h2>
+                            <p>Create your first Roblox Place to get started</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = products.map(product => `
+                    <div class="product-card">
+                        <img src="${product.image}" class="product-image" alt="${product.name}">
+                        <div class="product-info">
+                            <h3 class="product-name">${product.name}</h3>
+                            <a href="/download/${product.file_id}" 
+                               class="download-btn" 
+                               download="${product.original_file_name}"
+                               type="application/octet-stream">
+                               Download .rbxl File
+                            </a>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        });
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            font-family: Arial, sans-serif;
+        }
+        
+        .bubble {
+            position: absolute;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(0,0,0,0.5);
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            text-align: center;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        
+        .bubble:hover {
+            transform: scale(1.1) rotate(5deg);
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <script>
+        // النصوص التي تريد عرضها داخل الفقاعات
+        const texts = ["Roblox", "Studio", "Game", "Play", "Create", "Fun", "Build", "3D"];
+        
+        // ألوان الفقاعات
+        const colors = [
+            "rgba(255, 50, 50, 0.7)",    // أحمر
+            "rgba(50, 255, 50, 0.7)",    // أخضر
+            "rgba(50, 50, 255, 0.7)",    // أزرق
+            "rgba(255, 255, 50, 0.7)",   // أصفر
+            "rgba(255, 50, 255, 0.7)",   // أرجواني
+            "rgba(50, 255, 255, 0.7)"    // تركواز
+        ];
+        
+        // إنشاء الفقاعات
+        function createBubbles() {
+            for (let i = 0; i < 15; i++) {
+                setTimeout(() => {
+                    const bubble = document.createElement("div");
+                    bubble.className = "bubble";
+                    
+                    // حجم عشوائي بين 60 و120 بكسل
+                    const size = Math.floor(Math.random() * 60) + 60;
+                    bubble.style.width = `${size}px`;
+                    bubble.style.height = `${size}px`;
+                    
+                    // لون عشوائي
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    bubble.style.background = color;
+                    
+                    // نص عشوائي
+                    const text = texts[Math.floor(Math.random() * texts.length)];
+                    bubble.textContent = text;
+                    
+                    // موقع ابتدائي عشوائي
+                    bubble.style.left = `${Math.random() * window.innerWidth}px`;
+                    bubble.style.top = `${window.innerHeight + size}px`;
+                    
+                    document.body.appendChild(bubble);
+                    
+                    // تحريك الفقاعة
+                    animateBubble(bubble, size);
+                }, i * 300); // تأخير بين إنشاء كل فقاعة
+            }
+        }
+        
+        // تحريك الفقاعة
+        function animateBubble(bubble, size) {
+            let y = window.innerHeight + size;
+            const speed = Math.random() * 2 + 1;
+            const x = parseFloat(bubble.style.left);
+            const xSpeed = Math.random() * 2 - 1; // حركة أفقية عشوائية
+            
+            function move() {
+                y -= speed;
+                const newX = x + Math.sin(y / 50) * 10 * xSpeed;
+                
+                bubble.style.top = `${y}px`;
+                bubble.style.left = `${newX}px`;
+                
+                // تدوير الفقاعة
+                bubble.style.transform = `rotate(${y / 20}deg)`;
+                
+                if (y < -size) {
+                    // إعادة الفقاعة للأسفل عند الوصول للأعلى
+                    y = window.innerHeight + size;
+                    bubble.style.left = `${Math.random() * window.innerWidth}px`;
+                    
+                    // تغيير النص عند إعادة الدوران
+                    const newText = texts[Math.floor(Math.random() * texts.length)];
+                    bubble.textContent = newText;
+                }
+                
+                requestAnimationFrame(move);
+            }
+            
+            move();
+        }
+        
+        // بدء التأثير عند تحميل الصفحة
+        window.onload = createBubbles;
+        
+        // إعادة إنشاء الفقاعات عند تغيير حجم النافذة
+        window.onresize = function() {
+            document.querySelectorAll('.bubble').forEach(b => b.remove());
+            createBubbles();
+        };
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roblox Place Store | Discover Amazing Places</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #5865F2;
+            --primary-dark: #4752C4;
+            --primary-light: #7983F5;
+            --secondary: #ED4245;
+            --dark: #23272A;
+            --darker: #1e2124;
+            --light: #F6F6F6;
+            --gray: #99AAB5;
+            --success: #3BA55C;
+            --warning: #FAA61A;
+            --danger: #ED4245;
+            --card-bg: #2F3136;
+            --card-hover: #36393F;
+            --text-primary: #FFFFFF;
+            --text-secondary: #B9BBBE;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Whitney', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: var(--dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header Styles */
+        header {
+            background-color: var(--darker);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+        
+        .logo i {
+            color: var(--primary);
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 25px;
+        }
+        
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .nav-link:hover {
+            color: var(--text-primary);
+        }
+        
+        .nav-link.active {
+            color: var(--primary);
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            white-space: nowrap;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background-color: var(--card-bg);
+            color: var(--text-primary);
+        }
+        
+        .btn-secondary:hover {
+            background-color: var(--card-hover);
+        }
+        
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
+            padding: 80px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('https://cdn.discordapp.com/attachments/103999999999999999/104000000000000000/bg-pattern.png');
+            opacity: 0.05;
+            z-index: 0;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            background: linear-gradient(to right, var(--primary), var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+        }
+        
+        .hero-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        /* Stats Section */
+        .stats {
+            background-color: var(--darker);
+            padding: 30px 0;
+            margin-bottom: 40px;
+        }
+        
+        .stats-container {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            min-width: 150px;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* Products Section */
+        .section-title {
+            font-size: 2rem;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .section-title i {
+            color: var(--primary);
+        }
+        
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 50px;
+        }
+        
+        .product-card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            background-color: var(--card-hover);
+        }
+        
+        .product-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background-color: var(--primary);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            z-index: 2;
+        }
+        
+        .product-image-container {
+            height: 180px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .product-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+        
+        .product-card:hover .product-image {
+            transform: scale(1.05);
+        }
+        
+        .product-info {
+            padding: 20px;
+        }
+        
+        .product-title {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+            font-weight: 600;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .product-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .product-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            font-size: 0.85rem;
+            color: var(--gray);
+        }
+        
+        .product-author {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .product-downloads {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .product-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-sm {
+            padding: 8px 15px;
+            font-size: 0.85rem;
+        }
+        
+        .btn-icon {
+            padding: 8px;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            grid-column: 1 / -1;
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+        
+        .empty-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+        
+        .empty-state p {
+            color: var(--text-secondary);
+            max-width: 500px;
+            margin: 0 auto 20px;
+        }
+        
+        /* Alerts */
+        .alert {
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .alert-success {
+            background-color: rgba(59, 165, 92, 0.2);
+            color: #3BA55C;
+            border-left: 4px solid #3BA55C;
+        }
+        
+        .alert-error {
+            background-color: rgba(237, 66, 69, 0.2);
+            color: #ED4245;
+            border-left: 4px solid #ED4245;
+        }
+        
+        /* Footer */
+        footer {
+            background-color: var(--darker);
+            padding: 40px 0;
+            margin-top: 60px;
+        }
+        
+        .footer-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 40px;
+        }
+        
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 15px;
+        }
+        
+        .footer-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+        
+        .social-links {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .social-link {
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            transition: color 0.2s;
+        }
+        
+        .social-link:hover {
+            color: var(--primary);
+        }
+        
+        .footer-title {
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        .footer-links {
+            list-style: none;
+        }
+        
+        .footer-link {
+            margin-bottom: 10px;
+        }
+        
+        .footer-link a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.2s;
+            font-size: 0.9rem;
+        }
+        
+        .footer-link a:hover {
+            color: var(--primary);
+        }
+        
+        .copyright {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--card-bg);
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-container {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .nav-links {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .hero h1 {
+                font-size: 2.2rem;
+            }
+            
+            .hero-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .products-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container header-container">
+            <a href="/" class="logo">
+                <i class="fas fa-cube"></i>
+                <span>RobloxStore</span>
+            </a>
+            <div class="nav-links">
+                <a href="/" class="nav-link active">
+                    <i class="fas fa-home"></i>
+                    Home
+                </a>
+                <a href="/create" class="nav-link">
+                    <i class="fas fa-plus"></i>
+                    Create
+                </a>
+                <a href="#" class="nav-link">
+                    <i class="fas fa-fire"></i>
+                    Popular
+                </a>
+                <a href="#" class="nav-link">
+                    <i class="fas fa-info-circle"></i>
+                    About
+                </a>
+            </div>
+        </div>
+    </header>
+    
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Discover Amazing Roblox Places</h1>
+            <p>Browse and download the best Roblox experiences created by our community. Find everything from roleplay games to obstacle courses.</p>
+            <div class="hero-buttons">
+                <a href="/create" class="btn btn-primary">
+                    <i class="fas fa-plus"></i>
+                    Upload Your Place
+                </a>
+                <a href="#featured" class="btn btn-secondary">
+                    <i class="fas fa-compass"></i>
+                    Explore
+                </a>
+            </div>
+        </div>
+    </section>
+    
+    <section class="stats">
+        <div class="container stats-container" id="stats-container">
+            <div class="stat-item">
+                <div class="stat-number" id="total-places">0</div>
+                <div class="stat-label">Places Available</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="total-downloads">0</div>
+                <div class="stat-label">Total Downloads</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="active-users">0</div>
+                <div class="stat-label">Active Creators</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="latest-version">1.2.0</div>
+                <div class="stat-label">Platform Version</div>
+            </div>
+        </div>
+    </section>
+    
+    <main class="container">
+        <div id="alert-message"></div>
+        
+        <h2 class="section-title" id="featured">
+            <i class="fas fa-star"></i>
+            Featured Places
+        </h2>
+        
+        <div class="products-grid" id="products-container">
+            <div class="empty-state">
+                <i class="fas fa-box-open"></i>
+                <h3>No Roblox Places Available</h3>
+                <p>Create your first Roblox Place to get started. Our community is waiting to explore your creation!</p>
+                <a href="/create" class="btn btn-primary">
+                    <i class="fas fa-plus"></i>
+                    Create Your First Place
+                </a>
+            </div>
+        </div>
+    </main>
+    
+    <footer>
+        <div class="container">
+            <div class="footer-container">
+                <div class="footer-col">
+                    <div class="footer-logo">
+                        <i class="fas fa-cube"></i>
+                        <span>RobloxStore</span>
+                    </div>
+                    <p class="footer-description">
+                        The premier platform for sharing and discovering amazing Roblox places. 
+                        Join our growing community of creators today.
+                    </p>
+                    <div class="social-links">
+                        <a href="#" class="social-link">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="social-link">
+                            <i class="fab fa-discord"></i>
+                        </a>
+                        <a href="#" class="social-link">
+                            <i class="fab fa-youtube"></i>
+                        </a>
+                        <a href="#" class="social-link">
+                            <i class="fab fa-github"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="footer-col">
+                    <h3 class="footer-title">Quick Links</h3>
+                    <ul class="footer-links">
+                        <li class="footer-link">
+                            <a href="/">
+                                <i class="fas fa-home"></i>
+                                Home
+                            </a>
+                        </li>
+                        <li class="footer-link">
+                            <a href="/create">
+                                <i class="fas fa-plus"></i>
+                                Create Place
+                            </a>
+                        </li>
+                        <li class="footer-link">
+                            <a href="#">
+                                <i class="fas fa-fire"></i>
+                                Popular
+                            </a>
+                        </li>
+                        <li class="footer-link">
+                            <a href="#">
+                                <i class="fas fa-search"></i>
+                                Browse
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h3 class="footer-title">Resources</h3>
+                    <ul class="footer-links">
+                        <li class="footer-link">
+                            <a href="#">
+                                <i class="fas fa-book"></i>
+                                Documentation
+                            </a>
+                        </li>
+                        <li class="footer-link">
+                            <a href="#">
+                                <i class="fas fa-question-circle"></i>
+                                Help Center
+                            </a>
+                        </li>
+                        <li class="footer-link">
+                            <a href="#">
+                                <i class="fas fa-comments"></i>
+                                Community
+                            </a>
+                        </li>
+                        <li class="footer-link">
+                            <a href="#">
+                                <i class="fas fa-bug"></i>
+                                Report Issue
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h3 class="footer-title">Legal</h3>
+                    <ul class="footer-links">
+                        <li class="footer-link">
+                            <a href="#">
+                                <i class="fas fa-gavel"></i>
+                                Terms of Service
+                            </a>
+                        </li>
+                        <li class="footer-link">
+                            <a href="#">
+                                <i class="fas fa-lock"></i>
+                                Privacy Policy
+                            </a>
+                        </li>
+                        <li class="footer-link">
+                            <a href="#">
+                                <i class="fas fa-copyright"></i>
+                                Copyright
+                            </a>
+                        </li>
+                        <li class="footer-link">
+                            <a href="#">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Disclaimer
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                &copy; 2023 RobloxStore. Not affiliated with Roblox Corporation. All game files are property of their respective creators.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check for success message
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('created')) {
+                showAlert('Roblox Place created successfully!', 'success');
+                // Clean URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+            
+            // Load stats
+            loadStats();
+            
+            // Load products
+            loadProducts();
+            
+            // Alert function
+            function showAlert(message, type) {
+                const alertDiv = document.getElementById('alert-message');
+                alertDiv.innerHTML = `
+                    <div class="alert alert-${type}">
+                        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+                        ${message}
+                    </div>
+                `;
+                setTimeout(() => {
+                    alertDiv.innerHTML = '';
+                }, 5000);
+            }
+            
+            // Load stats function
+            async function loadStats() {
+                try {
+                    const response = await fetch('/api/stats');
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    
+                    const stats = await response.json();
+                    
+                    // Animate numbers
+                    animateValue('total-places', 0, stats.total_products, 1000);
+                    
+                    // For demo purposes - in a real app you would track these
+                    animateValue('total-downloads', 0, stats.total_products * 42, 1000);
+                    animateValue('active-users', 0, Math.floor(stats.total_products * 0.7), 1000);
+                    
+                } catch (error) {
+                    console.error('Error loading stats:', error);
+                }
+            }
+            
+            // Number animation function
+            function animateValue(id, start, end, duration) {
+                const obj = document.getElementById(id);
+                let startTimestamp = null;
+                const step = (timestamp) => {
+                    if (!startTimestamp) startTimestamp = timestamp;
+                    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                    obj.innerHTML = Math.floor(progress * (end - start) + start);
+                    if (progress < 1) {
+                        window.requestAnimationFrame(step);
+                    }
+                };
+                window.requestAnimationFrame(step);
+            }
+            
+            // Load products function
+            async function loadProducts() {
+                try {
+                    const response = await fetch('/get_products');
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    
+                    const products = await response.json();
+                    renderProducts(products);
+                } catch (error) {
+                    console.error('Error loading products:', error);
+                    showAlert('Error loading Roblox Places. Please try again.', 'error');
+                }
+            }
+            
+            // Render products function
+            function renderProducts(products) {
+                const container = document.getElementById('products-container');
+                
+                if (products.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-box-open"></i>
+                            <h3>No Roblox Places Available</h3>
+                            <p>Create your first Roblox Place to get started. Our community is waiting to explore your creation!</p>
+                            <a href="/create" class="btn btn-primary">
+                                <i class="fas fa-plus"></i>
+                                Create Your First Place
+                            </a>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = products.map(product => `
+                    <div class="product-card">
+                        ${product.downloads > 100 ? '<div class="product-badge">Popular</div>' : ''}
+                        <div class="product-image-container">
+                            <img src="${product.image}" class="product-image" alt="${product.name}">
+                        </div>
+                        <div class="product-info">
+                            <h3 class="product-title">${product.name}</h3>
+                            <p class="product-description">${product.description || 'No description provided.'}</p>
+                            <div class="product-meta">
+                                <div class="product-author">
+                                    <i class="fas fa-user"></i>
+                                    ${product.author || 'Anonymous'}
+                                </div>
+                                <div class="product-downloads">
+                                    <i class="fas fa-download"></i>
+                                    ${product.downloads || 0}
+                                </div>
+                            </div>
+                            <div class="product-actions">
+                                <a href="/download/${product.file_id}" 
+                                   class="btn btn-primary btn-sm" 
+                                   download="${product.original_file_name}"
+                                   type="application/octet-stream">
+                                   <i class="fas fa-download"></i>
+                                   Download
+                                </a>
+                                <button class="btn btn-secondary btn-sm btn-icon">
+                                    <i class="fas fa-info-circle"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Roblox Place</title>
+    <style>
+        :root {
+            --primary-color: #00a2ff;
+            --secondary-color: #007acc;
+            --dark-color: #1a1a1a;
+            --light-color: #f5f5f5;
+            --error-color: #dc3545;
+            --roblox-orange: #f85628;
+            --roblox-dark: #2c2f33;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+            color: #333;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        /* Bubble Animation */
+        .bubbles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+        
+        .bubble {
+            position: absolute;
+            bottom: -100px;
+            background: rgba(0, 162, 255, 0.1);
+            border-radius: 50%;
+            animation: rise 15s infinite ease-in;
+        }
+        
+        .bubble:nth-child(1) {
+            width: 40px;
+            height: 40px;
+            left: 10%;
+            animation-duration: 8s;
+        }
+        
+        .bubble:nth-child(2) {
+            width: 20px;
+            height: 20px;
+            left: 20%;
+            animation-duration: 5s;
+            animation-delay: 1s;
+        }
+        
+        .bubble:nth-child(3) {
+            width: 50px;
+            height: 50px;
+            left: 35%;
+            animation-duration: 7s;
+            animation-delay: 2s;
+        }
+        
+        .bubble:nth-child(4) {
+            width: 80px;
+            height: 80px;
+            left: 50%;
+            animation-duration: 11s;
+            animation-delay: 0s;
+        }
+        
+        .bubble:nth-child(5) {
+            width: 35px;
+            height: 35px;
+            left: 55%;
+            animation-duration: 6s;
+            animation-delay: 1s;
+        }
+        
+        .bubble:nth-child(6) {
+            width: 45px;
+            height: 45px;
+            left: 65%;
+            animation-duration: 8s;
+            animation-delay: 3s;
+        }
+        
+        .bubble:nth-child(7) {
+            width: 25px;
+            height: 25px;
+            left: 75%;
+            animation-duration: 7s;
+            animation-delay: 2s;
+        }
+        
+        .bubble:nth-child(8) {
+            width: 80px;
+            height: 80px;
+            left: 80%;
+            animation-duration: 6s;
+            animation-delay: 1s;
+        }
+        
+        @keyframes rise {
+            0% {
+                bottom: -100px;
+                transform: translateX(0);
+            }
+            50% {
+                transform: translateX(100px);
+            }
+            100% {
+                bottom: 1080px;
+                transform: translateX(-200px);
+            }
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background-color: var(--roblox-dark);
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 4px solid var(--roblox-orange);
+            position: relative;
+            z-index: 1;
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 2.2rem;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .form-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            position: relative;
+            z-index: 1;
+            animation: float 4s ease-in-out infinite;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+        
+        input[type="text"], 
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        input[type="text"]:focus, 
+        input[type="file"]:focus {
+            border-color: var(--roblox-orange);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(248, 86, 40, 0.2);
+        }
+        
+        .preview-container {
+            margin-top: 15px;
+            text-align: center;
+            padding: 15px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        
+        #preview-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            display: none;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .file-requirements {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+        }
+        
+        .btn-primary {
+            background-color: var(--roblox-orange);
+            color: white;
+            width: 100%;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .btn-primary:hover {
+            background-color: #e04b22;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        
+        .btn-primary:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: var(--roblox-orange);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+            color: #e04b22;
+        }
+        
+        .error-message {
+            color: var(--error-color);
+            font-size: 0.9rem;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Bubble Background -->
+    <div class="bubbles">
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+    </div>
+    
+    <header>
+        <div class="container">
+            <h1>Create New Roblox Place</h1>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="form-container">
+            <form id="create-form">
+                <div class="form-group">
+                    <label for="product-name">Place Name</label>
+                    <input type="text" id="product-name" placeholder="Enter your Roblox place name" required>
+                    <div id="name-error" class="error-message"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="product-image">Place Thumbnail Image</label>
+                    <input type="file" id="product-image" accept="image/*" required>
+                    <div class="preview-container">
+                        <img id="preview-image" src="#" alt="Place thumbnail preview">
+                    </div>
+                    <div id="image-error" class="error-message"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="product-file">Roblox Place File (.rbxl)</label>
+                    <input type="file" id="product-file" accept=".rbxl" required>
+                    <div class="file-requirements">Only .rbxl files are accepted</div>
+                    <div id="file-error" class="error-message"></div>
+                </div>
+                
+                <button type="button" id="create-btn" class="btn btn-primary">
+                    <span id="spinner" class="loading" style="display: none;"></span>
+                    <span id="btn-text">Create Roblox Place</span>
+                </button>
+            </form>
+            
+            <a href="/" class="back-link">← Back to Store</a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('create-form');
+            const productNameInput = document.getElementById('product-name');
+            const productImageInput = document.getElementById('product-image');
+            const productFileInput = document.getElementById('product-file');
+            const previewImage = document.getElementById('preview-image');
+            const createBtn = document.getElementById('create-btn');
+            const spinner = document.getElementById('spinner');
+            const btnText = document.getElementById('btn-text');
+            
+            // Preview image when selected
+            productImageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file && file.type.match('image.*')) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        previewImage.src = event.target.result;
+                        previewImage.style.display = 'block';
+                    }
+                    reader.readAsDataURL(file);
+                    document.getElementById('image-error').style.display = 'none';
+                }
+            });
+            
+            // Handle form submission
+            createBtn.addEventListener('click', async function() {
+                // Reset errors
+                document.querySelectorAll('.error-message').forEach(el => {
+                    el.style.display = 'none';
+                });
+                
+                // Validate inputs
+                const name = productNameInput.value.trim();
+                const imageFile = productImageInput.files[0];
+                const placeFile = productFileInput.files[0];
+                
+                let isValid = true;
+                
+                if (!name) {
+                    document.getElementById('name-error').textContent = 'Please enter a place name';
+                    document.getElementById('name-error').style.display = 'block';
+                    isValid = false;
+                }
+                
+                if (!imageFile) {
+                    document.getElementById('image-error').textContent = 'Please select a thumbnail image';
+                    document.getElementById('image-error').style.display = 'block';
+                    isValid = false;
+                } else if (!imageFile.type.match('image.*')) {
+                    document.getElementById('image-error').textContent = 'Please select a valid image file';
+                    document.getElementById('image-error').style.display = 'block';
+                    isValid = false;
+                }
+                
+                if (!placeFile) {
+                    document.getElementById('file-error').textContent = 'Please select a .rbxl file';
+                    document.getElementById('file-error').style.display = 'block';
+                    isValid = false;
+                } else if (!placeFile.name.toLowerCase().endsWith('.rbxl')) {
+                    document.getElementById('file-error').textContent = 'Only .rbxl files are allowed';
+                    document.getElementById('file-error').style.display = 'block';
+                    isValid = false;
+                }
+                
+                if (!isValid) return;
+                
+                // Disable button and show loading
+                createBtn.disabled = true;
+                btnText.textContent = 'Creating...';
+                spinner.style.display = 'inline-block';
+                
+                try {
+                    // 1. Upload image
+                    const imageFormData = new FormData();
+                    imageFormData.append('image', imageFile);
+                    
+                    const imageResponse = await fetch('/upload_image', {
+                        method: 'POST',
+                        body: imageFormData
+                    });
+                    
+                    if (!imageResponse.ok) {
+                        throw new Error('Failed to upload thumbnail image');
+                    }
+                    
+                    const imageResult = await imageResponse.json();
+                    
+                    // 2. Upload Roblox Place file
+                    const fileFormData = new FormData();
+                    fileFormData.append('file', placeFile);
+                    
+                    const fileResponse = await fetch('/upload_file', {
+                        method: 'POST',
+                        body: fileFormData
+                    });
+                    
+                    if (!fileResponse.ok) {
+                        throw new Error('Failed to upload .rbxl file');
+                    }
+                    
+                    const fileResult = await fileResponse.json();
+                    
+                    // 3. Create product
+                    const productData = {
+                        name: name,
+                        image: '/uploads/' + imageResult.filename,
+                        file_path: fileResult.filepath,
+                        original_file_name: fileResult.original_filename,
+                        file_type: 'application/octet-stream'
+                    };
+                    
+                    const productResponse = await fetch('/create_product', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(productData)
+                    });
+                    
+                    if (!productResponse.ok) {
+                        throw new Error('Failed to create place');
+                    }
+                    
+                    // Redirect to home with success message
+                    window.location.href = '/?created=true';
+                    
+                } catch (error) {
+                    console.error('Error:', error);
+                    document.getElementById('file-error').textContent = 'Error: ' + error.message;
+                    document.getElementById('file-error').style.display = 'block';
+                    
+                    // Re-enable button
+                    createBtn.disabled = false;
+                    btnText.textContent = 'Create Roblox Place';
+                    spinner.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
